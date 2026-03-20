@@ -11,13 +11,34 @@ import LogoLoop from '../components/animations/LogoLoop';
 import FadeInSection from '../components/animations/FadeInSection';
 import ScrollFloat from '../components/animations/ScrollFloat';
 import GradualBlur from '../components/animations/GradualBlur';
+import FAQ from '../components/FAQ';
 
 const Home = () => {
   return (
     <>
     <div className="page-container" style={{ paddingBottom: 0 }}>
       {/* Hero Section */}
-      <section className="hero-section">
+      <section className="hero-section" style={{ position: 'relative' }}>
+        {/* Soft, extremely blurred background image placed only in the hero section */}
+        <img 
+          src="/hero-crack.png" 
+          alt="" 
+          style={{
+            position: 'absolute',
+            top: '0%',
+            right: '-10%',
+            width: '70%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: 0.1,
+            filter: 'blur(50px)',
+            pointerEvents: 'none',
+            zIndex: -1,
+            transform: 'scale(1.2)'
+          }} 
+        />
+        <div style={{ position: 'absolute', bottom: '10%', left: '-10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: -2, pointerEvents: 'none', borderRadius: '50%' }} />
+        
         <div className="hero-content">
           <h1 className="hero-title">
             Predict and Prevent <br />
@@ -39,7 +60,7 @@ const Home = () => {
                 </div>
               </StarBorder>
             </Link>
-            <Link to="/import" className="btn-outline">Talk to an Expert</Link>
+            <Link to="/import" className="btn-outline">Import picture</Link>
           </div>
         </div>
 
@@ -55,10 +76,10 @@ const Home = () => {
             </div>
             
             <div className="floating-badge badge-left">
-              <ShieldAlert size={20} color="#10b981" />
+              <ShieldAlert size={20} color="#2563eb" />
             </div>
             <div className="floating-badge badge-right">
-              <Activity size={20} color="#10b981" />
+              <Activity size={20} color="#2563eb" />
             </div>
           </div>
         </div>
@@ -133,11 +154,6 @@ const Home = () => {
               <h3 className="feature-title">AI-Powered Precision</h3>
               <p className="feature-desc">Utilizing Wavelet Transforms and CNNs (MobileNetV2) to deliver highly accurate crack detection.</p>
             </div>
-            <div className="feature-card">
-              <div className="feature-icon"><ShieldAlert size={24} color="#2563eb" /></div>
-              <h3 className="feature-title">Predictive Maintenance</h3>
-              <p className="feature-desc">Identify micro-fissures before they become critical failures, mapping potential weaknesses across your infrastructure.</p>
-            </div>
           </section>
         </ScrollFloat>
       </FadeInSection>
@@ -175,13 +191,20 @@ const Home = () => {
         </section>
       </FadeInSection>
 
+      {/* FAQ Section */}
+      <FadeInSection delay={0.2} yOffset={40}>
+        <section style={{ marginTop: '8rem', padding: '0 2rem' }}>
+          <FAQ />
+        </section>
+      </FadeInSection>
+
       {/* Bottom CTA */}
       <FadeInSection delay={0.1} yOffset={30}>
         <section style={{ marginTop: '8rem', background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', borderRadius: '1.5rem', padding: '5rem 2rem', textAlign: 'center', color: 'white' }}>
           <h2 style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '1.5rem' }}>Ready to Modernize Your Inspections?</h2>
           <p style={{ fontSize: '1.25rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto 3rem' }}>Join the industry leaders leveraging visual AI to detect, track, and predict structural degradation.</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-            <Link to="/live" style={{ background: 'white', color: '#1e3a8a', padding: '1rem 2rem', borderRadius: '0.5rem', fontWeight: 600, display: 'inline-block' }}>Start Free Trial</Link>
+            <Link to="/live" style={{ background: 'white', color: '#1e3a8a', padding: '1rem 2rem', borderRadius: '0.5rem', fontWeight: 600, display: 'inline-block' }}>Start</Link>
             <Link to="/about" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.5)', color: 'white', padding: '1rem 2rem', borderRadius: '0.5rem', fontWeight: 600, display: 'inline-block' }}>Read More</Link>
           </div>
         </section>

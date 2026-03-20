@@ -1,7 +1,6 @@
 import React from 'react';
 import { UploadCloud, Image as ImageIcon, FileVideo } from 'lucide-react';
 import CardSwap from '../components/animations/CardSwap';
-import CardNav from '../components/animations/CardNav';
 
 const ImportPage = () => {
   const FrontCard = (
@@ -29,15 +28,6 @@ const ImportPage = () => {
 
       <div style={{ maxWidth: '600px', margin: '0 auto', height: '300px' }}>
         <CardSwap frontContent={FrontCard} backContent={BackCard} />
-      </div>
-
-      <div style={{ marginTop: '3rem' }}>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Recent Batch Analyses</h3>
-        <CardNav items={[
-          { title: "Bridge Arch Analysis (May)", desc: "14 High-risk fractures identified in the north sector." },
-          { title: "Pipeline Intake #4", desc: "Surface degradation within normal parameters." },
-          { title: "Commercial Foundation D", desc: "Batch analysis complete. 3 Anomalies found." },
-        ]} />
       </div>
     </div>
   );

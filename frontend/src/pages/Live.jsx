@@ -1,5 +1,4 @@
 import React from 'react';
-import ModelViewer from '../components/animations/ModelViewer';
 import { Video, Camera } from 'lucide-react';
 
 const Live = () => {
@@ -10,21 +9,13 @@ const Live = () => {
         <p className="dashboard-desc">Stream video feeds for real-time detection of structural anomalies.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-        <div className="video-player-placeholder">
-          <div className="status-badge" style={{ position: 'absolute', top: '1rem', left: '1rem' }}>
-            <span className="status-dot"></span> Waiting for camera signal...
-          </div>
-        </div>
-        
-        <div style={{ height: '400px' }}>
-          <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 600 }}>Live 3D Topological Map</h3>
-          <ModelViewer />
-        </div>
+      <div className="video-player-placeholder" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <Camera size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+        <p>Awaiting Camera Connection...</p>
+        <button className="button-primary" style={{ marginTop: '1.5rem' }}>
+          Connect Camera
+        </button>
       </div>
-      <button className="button-primary" style={{ marginTop: '1.5rem' }}>
-        Connect Camera
-      </button>
       
       <div className="feature-grid" style={{ marginTop: '3rem' }}>
         <div className="feature-card" style={{ padding: '1.5rem' }}>
