@@ -1,0 +1,39 @@
+.star-border-wrapper {
+  position: relative;
+  display: inline-block;
+  border-radius: 0.5rem;
+  padding: 2px;
+  overflow: hidden;
+}
+
+.star-border-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent,
+    transparent,
+    transparent,
+    #3b82f6
+  );
+  animation: star-spin 3s linear infinite;
+}
+
+.star-border-content {
+  position: relative;
+  z-index: 10;
+  background: var(--bg-color);
+  border-radius: 0.4rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes star-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}

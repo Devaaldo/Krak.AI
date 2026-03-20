@@ -1,0 +1,17 @@
+.scroll-velocity-wrapper {
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  background: var(--text-main);
+  color: white;
+  padding: 1rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.scroll-velocity-content {
+  display: flex;
+  gap: 2rem;
+}
