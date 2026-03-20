@@ -12,6 +12,7 @@ import FadeInSection from '../components/animations/FadeInSection';
 import ScrollFloat from '../components/animations/ScrollFloat';
 import GradualBlur from '../components/animations/GradualBlur';
 import FAQ from '../components/FAQ';
+import ShapeGrid from '../components/animations/ShapeGrid';
 
 const Home = () => {
   return (
@@ -19,25 +20,17 @@ const Home = () => {
     <div className="page-container" style={{ paddingBottom: 0 }}>
       {/* Hero Section */}
       <section className="hero-section" style={{ position: 'relative' }}>
-        {/* Soft, extremely blurred background image placed only in the hero section */}
-        <img 
-          src="/hero-crack.png" 
-          alt="" 
-          style={{
-            position: 'absolute',
-            top: '0%',
-            right: '-10%',
-            width: '70%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: 0.1,
-            filter: 'blur(50px)',
-            pointerEvents: 'none',
-            zIndex: -1,
-            transform: 'scale(1.2)'
-          }} 
-        />
-        <div style={{ position: 'absolute', bottom: '10%', left: '-10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%)', filter: 'blur(80px)', zIndex: -2, pointerEvents: 'none', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: -10, overflow: 'hidden' }}>
+          <ShapeGrid
+            speed={0.4}
+            squareSize={80}
+            direction="diagonal"
+            borderColor="#e2e8f0"
+            hoverFillColor="#bfdbfe"
+            shape="square"
+            hoverTrailAmount={6}
+          />
+        </div>
         
         <div className="hero-content">
           <h1 className="hero-title">
