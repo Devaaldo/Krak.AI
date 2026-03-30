@@ -1,0 +1,168 @@
+
+================================================================================
+CELL 0 (MARKDOWN)
+================================================================================
+# 1. Data Collecting
+
+================================================================================
+CELL 1 (CODE)
+================================================================================
+!pip install kaggle -q
+
+import os, shutil
+import pandas as pd
+import torch
+from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms as T
+from PIL import Image
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import pywt
+import torch.nn as nn
+import torch.nn.functional as F
+from sklearn.metrics import classification_report, confusion_matrix
+import seaborn as sns
+
+# Setup Kaggle API key
+os.makedirs(os.path.expanduser('~/.kaggle'), exist_ok=True)
+shutil.copy('kaggle.json', os.path.expanduser('~/.kaggle/kaggle.json'))
+os.chmod(os.path.expanduser('~/.kaggle/kaggle.json'), 0o600)
+
+print(f'PyTorch {torch.__version__} | CUDA: {torch.cuda.is_available()}')
+
+================================================================================
+CELL 2 (CODE)
+================================================================================
+# Download dataset kaggle
+!kaggle datasets download -d arunrk7/surface-crack-detection --unzip -p data/
+
+================================================================================
+CELL 3 (CODE)
+================================================================================
+SEED = 42
+CLASS_MAP = {'Negative': 0, 'Positive': 1}
+
+paths, labels = [], []
+for cls, lbl in CLASS_MAP.items():
+    for f in os.listdir(f'data/{cls}'):
+        paths.append(f'data/{cls}/{f}')
+        labels.append(lbl)
+
+# Split ke 70/15/15
+X_train, X_temp, y_train, y_temp = train_test_split(paths, labels, test_size=0.3, stratify=labels, random_state=SEED)
+X_val, X_test, y_val, y_test     = train_test_split(X_temp, y_temp, test_size=0.5, stratify=y_temp, random_state=SEED)
+
+# Simpan ke CSV 
+os.makedirs('data/splits', exist_ok=True)
+for name, X, y in [('train', X_train, y_train), ('val', X_val, y_val), ('test', X_test, y_test)]:
+    pd.DataFrame({'path': X, 'label': y}).to_csv(f'data/splits/{name}.csv', index=False)
+
+print(f"Train: {len(X_train)} | Val: {len(X_val)} | Test: {len(X_test)}")
+
+================================================================================
+CELL 4 (CODE)
+================================================================================
+fig, axes = plt.subplots(2, 5, figsize=(15, 6))
+fig.suptitle('Sample Dataset', fontsize=14)
+
+for i, cls in enumerate(['Negative', 'Positive']):
+    samples = os.listdir(f'data/{cls}')[:5]
+    for j, fname in enumerate(samples):
+        img = Image.open(f'data/{cls}/{fname}')
+        axes[i, j].imshow(img, cmap='gray')
+        axes[i, j].set_title(cls, fontsize=9)
+        axes[i, j].axis('off')
+
+plt.tight_layout()
+plt.show()
+
+================================================================================
+CELL 5 (MARKDOWN)
+================================================================================
+# 2. Pre-Processing
+Dalam pre-processing ini kita melakukan:
+1. Mengubah gambar menjadi grayscale
+2. Resize ke 128x128
+3. Normalisasi rentang 0 - 1
+4. Augmentasi (Flip, Rotasi, Brighness, Contrass)
+
+================================================================================
+CELL 6 (CODE)
+================================================================================
+IMG_SIZE   = 128
+BATCH_SIZE = 32
+
+train_transform = T.Compose([
+    T.Grayscale(),
+    T.Resize((IMG_SIZE, IMG_SIZE)),
+    T.RandomHorizontalFlip(),
+    T.RandomRotation(15),
+    T.ColorJitter(brightness=0.2),
+    T.ToTensor(),
+    T.Lambda(lambda x: x + 0.02 * torch.randn_like(x))  # gaussian noise
+])
+
+val_test_transform = T.Compose([
+    T.Grayscale(),
+    T.Resize((IMG_SIZE, IMG_SIZE)),
+    T.ToTensor()
+])
+
+
+class CrackDataset(Dataset):
+    def __init__(self, csv_path, transform):
+        df = pd.read_csv(csv_path)
+        self.paths, self.labels = df['path'].tolist(), df['label'].tolist()
+        self.transform = transform
+
+    def __len__(self): return len(self.paths)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.paths[idx]).convert('RGB')
+        return self.transform(img), torch.tensor(self.labels[idx], dtype=torch.long)
+
+
+train_loader = DataLoader(CrackDataset('data/splits/train.csv', train_transform),    batch_size=BATCH_SIZE, shuffle=True,  num_workers=0)
+val_loader   = DataLoader(CrackDataset('data/splits/val.csv',   val_test_transform), batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
+test_loader  = DataLoader(CrackDataset('data/splits/test.csv',  val_test_transform), batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
+
+# Verifikasi
+imgs, lbls = next(iter(train_loader))
+print(f'Shape: {imgs.shape} | Range: [{imgs.min():.2f}, {imgs.max():.2f}] | Labels: {lbls[:8].tolist()}')
+
+================================================================================
+CELL 7 (CODE)
+================================================================================
+fig, axes = plt.subplots(2, 5, figsize=(15, 6))
+fig.suptitle('Sebelum vs Sesudah Preprocessing', fontsize=14)
+
+for j in range(5):
+    # Sebelum — gambar asli RGB
+    raw = Image.open(X_train[j])
+    axes[0, j].imshow(raw)
+    axes[0, j].set_title('Original', fontsize=9)
+    axes[0, j].axis('off')
+
+    # Sesudah — hasil preprocessing (grayscale, resize, normalized)
+    preprocessed = val_test_transform(raw).squeeze(0).numpy()
+    axes[1, j].imshow(preprocessed, cmap='gray', vmin=0, vmax=1)
+    axes[1, j].set_title('Preprocessed', fontsize=9)
+    axes[1, j].axis('off')
+
+plt.tight_layout()
+plt.show()
+
+================================================================================
+CELL 8 (MARKDOWN)
+================================================================================
+# 3. Wavelet Transform
+
+================================================================================
+CELL 9 (CODE)
+================================================================================
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+  File "C:\Users\akbar\.pyenv\pyenv-win\versions\3.11.0\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 81: character maps to <undefined>
