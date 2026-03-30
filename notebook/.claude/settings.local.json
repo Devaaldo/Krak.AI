@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python3:*)",
-      "Bash(python -c \"import json; nb=json.load\\(open\\(''crack-detection.ipynb'', encoding=''utf-8''\\)\\); [print\\(i, c.get\\(''id'',''''\\), c[''cell_type''], repr\\(''''.join\\(c[''source'']\\)[:60]\\)\\) for i,c in enumerate\\(nb[''cells'']\\)]\")"
-    ]
-  }
-}
