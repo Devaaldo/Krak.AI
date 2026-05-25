@@ -1,0 +1,30 @@
+# ============================================================
+# Backend (FastAPI + inference server)
+# ============================================================
+fastapi==0.135.1
+uvicorn[standard]==0.41.0
+python-multipart==0.0.22
+websockets
+
+# ============================================================
+# ML Core – shared by backend and notebook
+# ============================================================
+torch==2.10.0
+torchvision==0.25.0
+numpy==2.4.3
+Pillow==12.1.1
+opencv-python==4.13.0.92
+PyWavelets==1.9.0
+
+# ============================================================
+# Notebook (crack-detection.ipynb)
+# ============================================================
+kaggle
+pandas
+scikit-learn
+matplotlib
+seaborn
+torchinfo
+tqdm
+ipywidgets
+notebook
