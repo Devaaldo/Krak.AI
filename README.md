@@ -1,4 +1,4 @@
-# Krak.AI -- Real-Time Surface Crack Detection with Wavelet-CNN
+# Krak.AI — Real-Time Surface Crack Detection with Wavelet-CNN
 
 A full-stack web application for detecting surface cracks on concrete and structural surfaces using Discrete Wavelet Transform (DWT) preprocessing and a lightweight CNN architecture, with real-time inference via webcam and Grad-CAM visual explanations.
 
@@ -19,7 +19,7 @@ Input Image --> Grayscale + Resize (128x128)
 ### Key Technical Details
 
 - **Preprocessing**: 2D Discrete Wavelet Transform (Haar) extracts 4-channel frequency sub-bands, emphasizing high-frequency edge features of cracks while suppressing noise.
-- **Model**: Custom lightweight CNN (LightCrackCNN) with 3 convolutional blocks, batch normalization, and global average pooling. Total parameters ~40K.
+- **Model**: Custom lightweight CNN (LightCrackCNN) with 3 convolutional blocks, batch normalization, and global average pooling. Total parameters ~24K.
 - **Explainability**: Grad-CAM visualization on the final convolutional layer provides spatial attribution maps for each prediction.
 - **Inference**: Sub-50ms per frame on CPU, enabling real-time detection at 10 FPS via WebSocket streaming.
 
@@ -35,10 +35,46 @@ Input Image --> Grayscale + Resize (128x128)
 
 ## Features
 
-- **Image Upload** -- Upload structural images for single-frame crack detection with confidence scores and Grad-CAM overlay.
-- **Live Webcam Detection** -- Stream camera feed via WebSocket for continuous real-time crack detection with FPS monitoring.
-- **Grad-CAM Visualization** -- Interpretable heatmap overlay showing which regions of the image activated the model's prediction.
-- **Responsive UI** -- Modern interface with page transitions, scroll animations, and interactive components.
+- **Image Upload**: Upload structural images for single-frame crack detection with confidence scores and Grad-CAM overlay.
+- **Live Webcam Detection**: Stream camera feed via WebSocket for continuous real-time crack detection with FPS monitoring.
+- **Grad-CAM Visualization**: Interpretable heatmap overlay showing which regions of the image activated the model's prediction.
+- **Responsive UI**: Modern interface with page transitions, scroll animations, and interactive components.
+
+## Results
+
+### Dataset Samples
+
+![Sample Dataset](docs/assets/sample_dataset.png)
+
+*Top row: Negative (no crack). Bottom row: Positive (crack detected).*
+
+### Preprocessing Pipeline
+
+![Preprocessing](docs/assets/preprocessing.png)
+
+*Left: original RGB images. Right: after grayscale conversion, resize to 128×128, and normalization.*
+
+### Wavelet Sub-bands (2-Level DWT)
+
+![Wavelet Subbands](docs/assets/wavelet_subbands.png)
+
+*From left: original grayscale, LL (approximation), LH (horizontal edges), HL (vertical edges), HH (diagonal edges).*
+
+### Training History
+
+![Training History](docs/assets/training_history.png)
+
+*Best validation accuracy reached at epoch 12 (98.27%). Early stopping triggered at epoch 18.*
+
+### Evaluation — Confusion Matrix
+
+![Confusion Matrix](docs/assets/confusion_matrix.png)
+
+### Grad-CAM Visualization
+
+![Grad-CAM](docs/assets/gradcam.png)
+
+*Row 1: original images. Row 2: preprocessed. Row 3: Grad-CAM overlay showing crack regions.*
 
 ## Project Structure
 
@@ -55,7 +91,9 @@ Input Image --> Grayscale + Resize (128x128)
 │   │   └── App.jsx          # Router configuration
 │   └── package.json
 ├── notebook/
-│   └── crack-detection.ipynb # Training and evaluation notebook
+│   └── crack-detection.ipynb  # Training and evaluation notebook
+├── docs/
+│   └── assets/              # Notebook result images
 ├── requirements.txt
 └── .gitignore
 ```
@@ -73,6 +111,7 @@ Input Image --> Grayscale + Resize (128x128)
 cd backend
 python -m venv .venv
 .venv\Scripts\activate        # Windows
+source .venv/bin/activate     # Linux / macOS
 pip install -r ../requirements.txt
 uvicorn main:app --reload --port 8000
 ```
@@ -89,15 +128,15 @@ The frontend runs at `http://localhost:5173` and communicates with the backend a
 
 ## API Endpoints
 
-| Method    | Endpoint   | Description                                      |
-|-----------|------------|--------------------------------------------------|
+| Method    | Endpoint   | Description                                         |
+|-----------|------------|-----------------------------------------------------|
 | POST      | /predict   | Upload image, returns label + confidence + Grad-CAM |
-| WebSocket | /ws        | Stream frames, receive real-time predictions      |
-| GET       | /          | Health check                                      |
+| WebSocket | /ws        | Stream frames, receive real-time predictions         |
+| GET       | /          | Health check                                         |
 
 ## Dataset
 
-Training was performed on the [Surface Crack Detection Dataset](https://www.kaggle.com/datasets/arunrk7/surface-crack-detection) from Kaggle, containing 40,000 images of concrete surfaces (20,000 positive, 20,000 negative).
+Training was performed on the [Surface Crack Detection Dataset](https://www.kaggle.com/datasets/arunrk7/surface-crack-detection) from Kaggle, containing 40,000 images of concrete surfaces (20,000 positive, 20,000 negative). Split 70/15/15 for train/val/test.
 
 ## License
 
