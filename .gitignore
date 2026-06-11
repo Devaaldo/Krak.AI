@@ -20,6 +20,8 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints/
 
+# Dataset (large files, download via Kaggle)
+notebook/data/
 
 # Credentials
 kaggle.json
