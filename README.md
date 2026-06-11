@@ -138,6 +138,3 @@ The frontend runs at `http://localhost:5173` and communicates with the backend a
 
 Training was performed on the [Surface Crack Detection Dataset](https://www.kaggle.com/datasets/arunrk7/surface-crack-detection) from Kaggle, containing 40,000 images of concrete surfaces (20,000 positive, 20,000 negative). Split 70/15/15 for train/val/test.
 
-## License
-
-This project is developed for academic and portfolio purposes.
