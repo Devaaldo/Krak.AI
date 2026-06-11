@@ -4,7 +4,6 @@
 fastapi==0.135.1
 uvicorn[standard]==0.41.0
 python-multipart==0.0.22
-websockets
 
 # ============================================================
 # ML Core – shared by backend and notebook
