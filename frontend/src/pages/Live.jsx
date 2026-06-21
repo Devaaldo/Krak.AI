@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, CameraOff, AlertCircle } from 'lucide-react';
 
-const WS_URL = 'ws://localhost:8000/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
 const FPS_TARGET = 10; // kirim frame tiap 100ms
 
 const Live = () => {
