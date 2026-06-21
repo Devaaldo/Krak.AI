@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileVideo, X, AlertCircle } from 'lucide-react';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ImportPage = () => {
   const [mode, setMode] = useState('image'); // 'image' | 'video'
