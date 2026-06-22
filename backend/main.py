@@ -1,4 +1,5 @@
 import base64
+import os
 import cv2
 import numpy as np
 from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect
@@ -7,9 +8,15 @@ from model import predict
 
 app = FastAPI()
 
+# "http://localhost:5173,https://krak-ai.vercel.app" via env var FRONTEND_ORIGINS
+origins = ["http://localhost:5173"]
+extra_origins = os.environ.get("FRONTEND_ORIGINS", "")
+if extra_origins:
+    origins.extend(o.strip() for o in extra_origins.split(","))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
