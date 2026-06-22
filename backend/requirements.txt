@@ -1,0 +1,13 @@
+# CPU-only torch build (Render free tier has no GPU; this avoids the
+# multi-GB CUDA wheels and keeps the build under the free-tier disk/time limits).
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi==0.135.1
+uvicorn[standard]==0.41.0
+python-multipart==0.0.22
+torch==2.10.0
+torchvision==0.25.0
+numpy==2.4.3
+Pillow==12.1.1
+opencv-python-headless==4.13.0.92
+PyWavelets==1.9.0
