@@ -1,5 +1,5 @@
-# CPU-only torch build (Render free tier has no GPU; this avoids the
-# multi-GB CUDA wheels and keeps the build under the free-tier disk/time limits).
+# CPU-only torch build (no GPU on free hosting tiers; this avoids the
+# multi-GB CUDA wheels and keeps the build under free-tier disk/time limits).
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 fastapi==0.135.1
