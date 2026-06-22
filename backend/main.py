@@ -2,8 +2,9 @@ import base64
 import os
 import cv2
 import numpy as np
-from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import UnidentifiedImageError
 from model import predict
 
 app = FastAPI()
@@ -25,7 +26,15 @@ app.add_middleware(
 # Upload mode
 @app.post("/predict")
 async def predict_image(file: UploadFile):
-    result = predict(await file.read())
+    image_bytes = await file.read()
+    try:
+        result = predict(image_bytes)
+    except (UnidentifiedImageError, OSError):
+        # File bukan gambar (mis. .txt/.pdf) atau gambar rusak/terpotong
+        raise HTTPException(
+            status_code=400,
+            detail="File yang dikirim bukan gambar yang valid atau rusak.",
+        )
     return {
         "label":      result["label"],
         "confidence": result["confidence"],
