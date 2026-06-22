@@ -84,7 +84,7 @@ const Live = () => {
 
     ws.onerror = () => {
       setStatus('error');
-      setErrorMsg('Gagal terhubung ke backend. Pastikan server berjalan di port 8000.');
+      setErrorMsg('Gagal terhubung ke server. Server mungkin sedang aktif kembali (~30 detik) — coba lagi sebentar.');
       disconnect(false);
     };
 
