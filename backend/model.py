@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,6 +8,8 @@ import pywt
 import cv2
 from PIL import Image
 from io import BytesIO
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'best_model.pth')
 
 
 # Arsitektur CNN
@@ -32,7 +35,7 @@ class LightCrackCNN(nn.Module):
 DEVICE = torch.device('cpu')
 
 model = LightCrackCNN().to(DEVICE)
-model.load_state_dict(torch.load('best_model.pth', map_location=DEVICE))
+model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
 
