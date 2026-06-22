@@ -2,6 +2,13 @@
 
 A full-stack web application for detecting surface cracks on concrete and structural surfaces using Discrete Wavelet Transform (DWT) preprocessing and a lightweight CNN architecture, with real-time inference via webcam and Grad-CAM visual explanations.
 
+## Live Demo
+
+- **Frontend (web app)**: https://krak-ai.vercel.app
+- **Backend (API docs)**: https://devaaldo-krak-ai-backend.hf.space/docs
+
+> The backend runs on Hugging Face Spaces' free tier and may sleep after inactivity — the first request can take ~30 seconds to wake up.
+
 ## Overview
 
 Krak.AI combines signal processing and deep learning to automate structural surface inspection. The system applies two-level Haar Wavelet Transform to decompose images into frequency sub-bands, then feeds these into a custom lightweight CNN for binary classification (crack / no crack). Grad-CAM overlays provide interpretable visual feedback, highlighting the exact regions driving each prediction.
@@ -125,6 +132,17 @@ npm run dev
 ```
 
 The frontend runs at `http://localhost:5173` and communicates with the backend at `http://localhost:8000`.
+
+## Deployment
+
+Both halves are deployed on free tiers:
+
+| Part     | Platform              | Notes                                                                                  |
+|----------|-----------------------|----------------------------------------------------------------------------------------|
+| Frontend | **Vercel**            | Root Directory `frontend`; set env vars `VITE_API_URL` & `VITE_WS_URL`, then redeploy.  |
+| Backend  | **Hugging Face Spaces** | Docker SDK, port `7860` (see `backend/Dockerfile` + `backend/README.md`). A `git push` triggers a rebuild. |
+
+After deploying, allow the frontend origin on the backend by setting the `FRONTEND_ORIGINS` env var (Space → Settings → Variables) to the Vercel URL, e.g. `https://krak-ai.vercel.app`.
 
 ## API Endpoints
 
