@@ -23,10 +23,18 @@ app.add_middleware(
 )
 
 
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB (selaras dgn batas yang ditampilkan frontend)
+
+
 # Upload mode
 @app.post("/predict")
 async def predict_image(file: UploadFile):
     image_bytes = await file.read()
+    if len(image_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail="Ukuran file melebihi batas 20 MB.",
+        )
     try:
         result = predict(image_bytes)
     except (UnidentifiedImageError, OSError):
