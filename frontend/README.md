@@ -1,16 +1,34 @@
-# React + Vite
+# Krak.AI — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Antarmuka web Krak.AI untuk deteksi keretakan permukaan: upload gambar (halaman **Import**) dan deteksi real-time via webcam (halaman **Live**). Dibangun dengan React 19 + Vite, berkomunikasi dengan backend FastAPI lewat REST (`/predict`) dan WebSocket (`/ws`).
 
-Currently, two official plugins are available:
+## Menjalankan secara lokal
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev      # http://localhost:5173
+```
 
-## React Compiler
+Pastikan backend berjalan di `http://localhost:8000` (lihat `../backend`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Environment variables
 
-## Expanding the ESLint configuration
+Frontend mencari alamat backend dari env var berikut. Salin `.env.example` jadi `.env`:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+| Variable        | Fungsi                                  | Contoh produksi                                  |
+|-----------------|------------------------------------------|--------------------------------------------------|
+| `VITE_API_URL`  | Backend HTTP (upload gambar `/predict`)  | `https://<user>-<space>.hf.space`                |
+| `VITE_WS_URL`   | Backend WebSocket (webcam `/ws`)         | `wss://<user>-<space>.hf.space/ws`               |
+
+> Variabel `VITE_*` ditanam saat **build**. Kalau diubah di hosting (mis. Vercel), wajib **redeploy** agar nilai barunya ikut.
+
+## Build produksi
+
+```bash
+npm run build    # output ke dist/
+npm run preview  # cek hasil build secara lokal
+```
+
+## Deploy
+
+Frontend ini dideploy ke **Vercel** dengan Root Directory `frontend`, plus dua env var di atas. Lihat README utama di root repo untuk panduan deploy lengkap.
