@@ -78,6 +78,7 @@ const Live = () => {
     ws.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
+        if (data.error) return; // frame tidak valid — abaikan, jangan render hasil rusak
         setResult(data);
       } catch (_) {}
     };
