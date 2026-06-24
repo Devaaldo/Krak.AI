@@ -12,6 +12,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Request,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -19,6 +20,9 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 load_dotenv()
 
@@ -76,6 +80,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting (lindungi endpoint publik & jaga kuota free tier LLM).
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB (selaras dgn batas yang ditampilkan frontend)
@@ -140,7 +149,8 @@ class HealthResponse(BaseModel):
 
 # --------------------------- CV: Upload mode ---------------------------
 @app.post("/predict", response_model=PredictResponse)
-async def predict_image(file: UploadFile):
+@limiter.limit("30/minute")
+async def predict_image(request: Request, file: UploadFile):
     t0 = time.perf_counter()
     image_bytes = await file.read()
     if len(image_bytes) > MAX_FILE_SIZE:
@@ -199,7 +209,8 @@ async def websocket_endpoint(ws: WebSocket):
 
 # --------------------------- GenAI: Advisor (RAG) ---------------------------
 @app.post("/advisor", response_model=AdvisorResponse)
-def advisor(req: AdvisorRequest):
+@limiter.limit("15/minute")
+def advisor(request: Request, req: AdvisorRequest):
     try:
         result = rag_answer(req.question, detection_context=req.detection_context)
     except LLMNotConfigured as exc:
@@ -209,7 +220,8 @@ def advisor(req: AdvisorRequest):
 
 # --------------------------- GenAI: Inspection report ---------------------------
 @app.post("/report", response_model=ReportResponse)
-def report(req: ReportRequest):
+@limiter.limit("10/minute")
+def report(request: Request, req: ReportRequest):
     try:
         result = generate_report(req.label, req.confidence, metadata=req.metadata)
     except LLMNotConfigured as exc:
@@ -219,7 +231,9 @@ def report(req: ReportRequest):
 
 # --------------------------- GenAI: Multimodal agent ---------------------------
 @app.post("/agent", response_model=AgentResponse)
+@limiter.limit("10/minute")
 async def agent_endpoint(
+    request: Request,
     message: str = Form(...),
     history: str = Form("[]"),
     file: UploadFile | None = File(None),
