@@ -1,4 +1,5 @@
 import os
+import threading
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -38,6 +39,12 @@ model = LightCrackCNN().to(DEVICE)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
+# Grad-CAM memasang hook + backward() pada objek `model` global yang dibagi
+# semua request. Tanpa serialisasi, dua request bersamaan saling menimpa
+# gradien/feature -> hasil bisa tertukar. Model kecil & CPU, jadi lock global
+# (serialisasi inference) aman dan menghilangkan race sepenuhnya.
+_INFERENCE_LOCK = threading.Lock()
+
 
 # Preprocessing + DWT
 transform = T.Compose([T.Grayscale(), T.Resize((128, 128)), T.ToTensor()])
@@ -68,7 +75,8 @@ def get_gradcam(tensor_4ch):
     gradcam  = F.relu((weights * features[0]).sum(dim=1).squeeze())
     gradcam  = (gradcam / (gradcam.max() + 1e-8)).detach().cpu().numpy()
 
-    h1.remove(); h2.remove()
+    h1.remove()
+    h2.remove()
     return cv2.resize(gradcam, (128, 128))
 
 
@@ -77,16 +85,19 @@ def predict(image_bytes: bytes) -> dict:
     img      = Image.open(BytesIO(image_bytes)).convert('RGB')
     tensor   = transform(img)
     wavelet  = apply_dwt(tensor)
-    
-    with torch.no_grad():
-        output = model(wavelet.unsqueeze(0).to(DEVICE))
-    
-    probs     = F.softmax(output, dim=1)[0]
-    label     = 'Positive' if probs.argmax().item() == 1 else 'Negative'
-    confidence = probs.max().item()
 
-    # Grad-CAM
-    gradcam       = get_gradcam(wavelet)
+    # Serialisasi: forward + Grad-CAM (backward) memakai state model terbagi.
+    with _INFERENCE_LOCK:
+        with torch.no_grad():
+            output = model(wavelet.unsqueeze(0).to(DEVICE))
+
+        probs     = F.softmax(output, dim=1)[0]
+        label     = 'Positive' if probs.argmax().item() == 1 else 'Negative'
+        confidence = probs.max().item()
+
+        # Grad-CAM
+        gradcam = get_gradcam(wavelet)
+
     heatmap       = cv2.applyColorMap((gradcam * 255).astype(np.uint8), cv2.COLORMAP_JET)
     img_resized   = np.array(img.resize((128, 128)))
     overlay       = cv2.addWeighted(img_resized, 0.5, heatmap, 0.5, 0)
