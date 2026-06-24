@@ -5,9 +5,24 @@
 fastapi==0.135.1
 uvicorn[standard]==0.41.0
 python-multipart==0.0.22
+python-dotenv==1.0.1
 torch==2.10.0
 torchvision==0.25.0
 numpy==2.4.3
 Pillow==12.1.1
 opencv-python-headless==4.13.0.92
 PyWavelets==1.9.0
+
+# --- GenAI layer (AI Engineer) ---
+# Dipin dengan rentang kompatibel; bekukan ke versi eksak via `pip freeze`
+# setelah build HF Spaces pertama yang sukses. sentence-transformers memakai
+# torch yang sudah di-pin di atas (CPU-only).
+langchain>=0.3,<0.4
+langchain-community>=0.3,<0.4
+langchain-google-genai>=2.0,<3.0
+langchain-huggingface>=0.1,<0.3
+google-generativeai>=0.8,<0.9
+faiss-cpu>=1.8,<2.0
+sentence-transformers>=3.0,<4.0
+# Opsional (provider teks alternatif Gemma/Llama). Aktifkan bila LLM_PROVIDER=groq:
+# langchain-groq>=0.2,<0.4
