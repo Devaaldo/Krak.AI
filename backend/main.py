@@ -1,13 +1,68 @@
 import base64
+import json
+import logging
 import os
-import cv2
-import numpy as np
-from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from PIL import UnidentifiedImageError
-from model import predict
+import time
+from contextlib import asynccontextmanager
+from io import BytesIO
 
-app = FastAPI()
+from dotenv import load_dotenv
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
+from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image, UnidentifiedImageError
+from pydantic import BaseModel
+
+load_dotenv()
+
+from agent import run_agent  # noqa: E402
+from llm import LLMNotConfigured, text_llm_available, vision_available  # noqa: E402
+from model import predict  # noqa: E402
+from rag import answer as rag_answer  # noqa: E402
+from rag import build_index  # noqa: E402
+from report import generate_report  # noqa: E402
+from vlm import maybe_second_opinion  # noqa: E402
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("krak-ai")
+
+
+def _dummy_png_bytes() -> bytes:
+    buf = BytesIO()
+    Image.new("RGB", (128, 128), (127, 127, 127)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Warmup CNN supaya request pertama tidak lambat.
+    try:
+        predict(_dummy_png_bytes())
+        logger.info("Model warmup selesai.")
+    except Exception as exc:  # pragma: no cover - best effort
+        logger.warning("Warmup model gagal: %s", exc)
+    # Build index RAG (opsional; butuh deps GenAI + unduh model embedding).
+    try:
+        build_index()
+        logger.info("FAISS index knowledge base siap.")
+    except Exception as exc:  # pragma: no cover - best effort
+        logger.warning("Build index RAG dilewati: %s", exc)
+    yield
+
+
+app = FastAPI(
+    title="Krak.AI API",
+    description="Deteksi retak (CV) + layer GenAI: advisor (RAG), laporan, VLM, agent.",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 # "http://localhost:5173,https://krak-ai.vercel.app" via env var FRONTEND_ORIGINS
 origins = ["http://localhost:5173"]
@@ -25,32 +80,98 @@ app.add_middleware(
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB (selaras dgn batas yang ditampilkan frontend)
 
+# Metadata model (mesin-baca) untuk diekspos di "/".
+try:
+    with open(os.path.join(os.path.dirname(__file__), "model_meta.json"), encoding="utf-8") as _f:
+        MODEL_META = json.load(_f)
+except Exception:  # pragma: no cover - metadata opsional
+    MODEL_META = None
 
-# Upload mode
-@app.post("/predict")
+
+# --------------------------- Schemas (Pydantic) ---------------------------
+class SecondOpinion(BaseModel):
+    source: str
+    text: str
+    triggered_below: float
+
+
+class PredictResponse(BaseModel):
+    label: str
+    confidence: float
+    gradcam: str
+    second_opinion: SecondOpinion | None = None
+
+
+class Citation(BaseModel):
+    source: str
+    snippet: str
+
+
+class AdvisorRequest(BaseModel):
+    question: str
+    detection_context: str | None = None
+
+
+class AdvisorResponse(BaseModel):
+    answer: str
+    citations: list[Citation]
+
+
+class ReportRequest(BaseModel):
+    label: str
+    confidence: float
+    metadata: dict | None = None
+
+
+class ReportResponse(BaseModel):
+    report_markdown: str
+
+
+class AgentResponse(BaseModel):
+    answer: str
+
+
+class HealthResponse(BaseModel):
+    status: str
+    genai_text: bool
+    genai_vision: bool
+    model: dict | None = None
+
+
+# --------------------------- CV: Upload mode ---------------------------
+@app.post("/predict", response_model=PredictResponse)
 async def predict_image(file: UploadFile):
+    t0 = time.perf_counter()
     image_bytes = await file.read()
     if len(image_bytes) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=413,
-            detail="Ukuran file melebihi batas 20 MB.",
-        )
+        raise HTTPException(status_code=413, detail="Ukuran file melebihi batas 20 MB.")
     try:
         result = predict(image_bytes)
     except (UnidentifiedImageError, OSError):
-        # File bukan gambar (mis. .txt/.pdf) atau gambar rusak/terpotong
         raise HTTPException(
             status_code=400,
             detail="File yang dikirim bukan gambar yang valid atau rusak.",
         )
-    return {
-        "label":      result["label"],
-        "confidence": result["confidence"],
-        "gradcam":    base64.b64encode(result["gradcam"]).decode()
-    }
+
+    # VLM fallback: second opinion saat confidence rendah.
+    second = maybe_second_opinion(image_bytes, result["confidence"])
+
+    logger.info(
+        "predict label=%s confidence=%.2f vlm=%s latency_ms=%d",
+        result["label"],
+        result["confidence"],
+        bool(second),
+        (time.perf_counter() - t0) * 1000,
+    )
+    return PredictResponse(
+        label=result["label"],
+        confidence=result["confidence"],
+        gradcam=base64.b64encode(result["gradcam"]).decode(),
+        second_opinion=SecondOpinion(**second) if second else None,
+    )
 
 
-# Live webcam mode
+# --------------------------- CV: Live webcam mode ---------------------------
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
@@ -58,17 +179,73 @@ async def websocket_endpoint(ws: WebSocket):
         while True:
             # Terima frame dari frontend sebagai bytes
             frame_bytes = await ws.receive_bytes()
-            result      = predict(frame_bytes)
-            await ws.send_json({
-                "label":      result["label"],
-                "confidence": result["confidence"],
-                "gradcam":    base64.b64encode(result["gradcam"]).decode()
-            })
+            try:
+                result = predict(frame_bytes)
+            except (UnidentifiedImageError, OSError):
+                # Frame korup / bukan gambar valid: beri tahu klien, jangan
+                # putus koneksi supaya streaming bisa lanjut.
+                await ws.send_json({"error": "Frame tidak valid atau rusak."})
+                continue
+            await ws.send_json(
+                {
+                    "label": result["label"],
+                    "confidence": result["confidence"],
+                    "gradcam": base64.b64encode(result["gradcam"]).decode(),
+                }
+            )
     except WebSocketDisconnect:
         pass
 
 
-# Health check
-@app.get("/")
+# --------------------------- GenAI: Advisor (RAG) ---------------------------
+@app.post("/advisor", response_model=AdvisorResponse)
+def advisor(req: AdvisorRequest):
+    try:
+        result = rag_answer(req.question, detection_context=req.detection_context)
+    except LLMNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    return AdvisorResponse(**result)
+
+
+# --------------------------- GenAI: Inspection report ---------------------------
+@app.post("/report", response_model=ReportResponse)
+def report(req: ReportRequest):
+    try:
+        result = generate_report(req.label, req.confidence, metadata=req.metadata)
+    except LLMNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    return ReportResponse(**result)
+
+
+# --------------------------- GenAI: Multimodal agent ---------------------------
+@app.post("/agent", response_model=AgentResponse)
+async def agent_endpoint(
+    message: str = Form(...),
+    history: str = Form("[]"),
+    file: UploadFile | None = File(None),
+):
+    image_bytes = None
+    if file is not None:
+        image_bytes = await file.read()
+        if len(image_bytes) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="Ukuran file melebihi batas 20 MB.")
+    try:
+        hist = json.loads(history)
+    except (ValueError, TypeError):
+        hist = []
+    try:
+        result = run_agent(message, image_bytes=image_bytes, history=hist)
+    except LLMNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    return AgentResponse(**result)
+
+
+# --------------------------- Health check ---------------------------
+@app.get("/", response_model=HealthResponse)
 def root():
-    return {"status": "ok"}
+    return HealthResponse(
+        status="ok",
+        genai_text=text_llm_available(),
+        genai_vision=vision_available(),
+        model=MODEL_META,
+    )
