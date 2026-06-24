@@ -1,0 +1,16 @@
+{
+  "name": "LightCrackCNN",
+  "version": "1.0.0",
+  "task": "binary-crack-detection",
+  "framework": "pytorch",
+  "input": "4-channel wavelet subbands (LL2, LH2, HL2, HH2), 32x32",
+  "preprocessing": "grayscale -> resize 128x128 -> ToTensor -> 2-level Haar DWT -> per-subband min-max normalize",
+  "classes": ["Negative", "Positive"],
+  "params": 24082,
+  "dataset": "Surface Crack Detection (Kaggle, ~40k images)",
+  "split": "70/15/15 stratified, seed=42",
+  "training": {"optimizer": "Adam", "lr": 0.001, "epochs": 30, "batch_size": 32},
+  "test_accuracy": 0.98,
+  "device": "cpu",
+  "explainability": "Grad-CAM (conv3)"
+}
