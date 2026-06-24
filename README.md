@@ -38,6 +38,7 @@ Input Image --> Grayscale + Resize (128x128)
 | Backend     | FastAPI, WebSocket                           |
 | ML Pipeline | PyTorch, PyWavelets, OpenCV                  |
 | Model       | LightCrackCNN (custom architecture)          |
+| GenAI       | Gemini, LangChain, FAISS, sentence-transformers |
 | Notebook    | Jupyter (training, evaluation, experiments)  |
 
 ## Features
@@ -46,6 +47,33 @@ Input Image --> Grayscale + Resize (128x128)
 - **Live Webcam Detection**: Stream camera feed via WebSocket for continuous real-time crack detection with FPS monitoring.
 - **Grad-CAM Visualization**: Interpretable heatmap overlay showing which regions of the image activated the model's prediction.
 - **Responsive UI**: Modern interface with page transitions, scroll animations, and interactive components.
+
+## AI Layer (GenAI)
+
+Di atas model computer-vision, Krak.AI menambahkan lapisan GenAI (hybrid CV + LLM)
+yang ditenagai **Google Gemini** (`gemini-2.0-flash`, free tier — teks & vision),
+embedding lokal **all-MiniLM-L6-v2**, **FAISS**, dan **LangChain**:
+
+- **Crack Advisor (RAG)** — `POST /advisor`: tanya-jawab grounded ke knowledge base
+  teknik retak (`backend/knowledge_base/`) lengkap dengan citations.
+- **Generator Laporan (LLM)** — `POST /report`: hasil deteksi → laporan inspeksi
+  terstruktur (Markdown).
+- **VLM Second Opinion** — saat confidence CNN rendah, `POST /predict` memicu Gemini
+  Vision untuk penilaian independen (field `second_opinion`).
+- **Multimodal Agent** — `POST /agent`: LangChain tool-calling agent (deteksi →
+  retrieval → laporan) dengan memori percakapan; UI di halaman **Assistant**.
+
+Semua fitur GenAI **opsional** — tanpa `GEMINI_API_KEY`, endpoint CV inti
+(`/predict`, `/ws`) tetap berjalan; endpoint GenAI mengembalikan `503`.
+Konfigurasi: lihat [`backend/.env.example`](backend/.env.example).
+
+### Engineering / MLOps
+
+- **Tests**: pytest (kontrak API + RAG + regresi model & train/serve parity) — `backend/tests/`.
+- **CI**: GitHub Actions (`ruff` + `pytest` backend, `eslint` + `build` frontend).
+- **Model card**: [`backend/MODEL_CARD.md`](backend/MODEL_CARD.md) + `model_meta.json` (diekspos di `GET /`).
+- **Reproducibility**: [`training/config.yaml`](training/config.yaml) + [`training/README.md`](training/README.md).
+- **Efisiensi/kuota**: cache LLM in-memory + cache VLM per-gambar, warmup model & FAISS saat startup, logging latensi.
 
 ## Results
 
