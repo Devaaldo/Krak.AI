@@ -1,0 +1,23 @@
+# Konfigurasi training LightCrackCNN — sumber tunggal hyperparameter (reproducible).
+seed: 42
+
+input_size: 128      # citra di-resize 128x128 sebelum DWT
+wavelet: haar
+dwt_levels: 2        # LL2/LH2/HL2/HH2 -> 4 kanal 32x32
+
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  stratify: true
+
+train:
+  optimizer: adam
+  lr: 0.001
+  batch_size: 32
+  epochs: 30
+
+paths:
+  data_dir: notebook/data
+  splits_dir: notebook/data/splits
+  model_out: backend/best_model.pth
