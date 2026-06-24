@@ -20,6 +20,7 @@ const Navbar = () => {
           <Link to="/" className={isActive('/')}>Home</Link>
           <Link to="/live" className={isActive('/live')}>Live</Link>
           <Link to="/import" className={isActive('/import')}>Import</Link>
+          <Link to="/assistant" className={isActive('/assistant')}>Assistant</Link>
           <Link to="/projects" className={isActive('/projects')}>Projects</Link>
           <Link to="/about" className={isActive('/about')}>About</Link>
         </div>

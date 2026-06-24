@@ -439,3 +439,39 @@ ul {
   color: white;
   margin-top: 2rem;
 }
+
+/* Rendered Markdown (laporan LLM & jawaban advisor) */
+.markdown-body {
+  font-size: 0.875rem;
+  color: var(--text-main);
+  line-height: 1.6;
+}
+.markdown-body h2 {
+  font-size: 1.15rem;
+  margin: 0.6rem 0 0.4rem;
+}
+.markdown-body h3 {
+  font-size: 1rem;
+  margin: 0.6rem 0 0.3rem;
+}
+.markdown-body h4 {
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0.25rem;
+}
+.markdown-body p {
+  margin: 0.4rem 0;
+}
+.markdown-body ul {
+  margin: 0.4rem 0;
+  padding-left: 1.25rem;
+}
+.markdown-body li {
+  margin: 0.2rem 0;
+}
+.markdown-body code {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.85em;
+}

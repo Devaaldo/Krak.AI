@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileVideo, X, AlertCircle } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { UploadCloud, FileVideo, X, AlertCircle, FileText, Download, Sparkles } from 'lucide-react';
+import { predictImage, generateReport } from '../lib/api';
+import { renderMarkdown } from '../lib/markdown';
+import AdvisorChat from '../components/AdvisorChat';
 
 const ImportPage = () => {
   const [mode, setMode] = useState('image'); // 'image' | 'video'
@@ -10,6 +11,9 @@ const ImportPage = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [reportMd, setReportMd] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState(null);
   const inputRef = useRef(null);
 
   const handleFile = (f) => {
@@ -31,12 +35,10 @@ const ImportPage = () => {
     setLoading(true);
     setError(null);
     setResult(null);
+    setReportMd(null);
+    setReportError(null);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await fetch(`${API_URL}/predict`, { method: 'POST', body: form });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
+      const data = await predictImage(file);
       setResult(data);
     } catch (err) {
       setError(err.message);
@@ -45,11 +47,42 @@ const ImportPage = () => {
     }
   };
 
+  const handleGenerateReport = async () => {
+    if (!result) return;
+    setReportLoading(true);
+    setReportError(null);
+    try {
+      const data = await generateReport({
+        label: result.label,
+        confidence: result.confidence,
+        metadata: { filename: file?.name },
+      });
+      setReportMd(data.report_markdown);
+    } catch (err) {
+      setReportError(err.message);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleDownloadReport = () => {
+    if (!reportMd) return;
+    const blob = new Blob([reportMd], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'laporan-inspeksi.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleReset = () => {
     setFile(null);
     setPreview(null);
     setResult(null);
     setError(null);
+    setReportMd(null);
+    setReportError(null);
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -110,6 +143,7 @@ const ImportPage = () => {
           </div>
         ) : (
           /* Preview + Result */
+          <>
           <div style={{ display: 'grid', gridTemplateColumns: result ? '1fr 1fr' : '1fr', gap: '1.5rem' }}>
 
             {/* Preview kolom kiri */}
@@ -222,9 +256,76 @@ const ImportPage = () => {
                     style={{ width: '100%', display: 'block' }}
                   />
                 </div>
+
+                {/* Second opinion (VLM) saat confidence rendah */}
+                {result.second_opinion && (
+                  <div style={{
+                    border: '1px solid #f59e0b40', background: '#fffbeb',
+                    borderRadius: '0.75rem', padding: '1rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                      <Sparkles size={15} style={{ color: '#b45309' }} />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b45309' }}>
+                        Second Opinion (Gemini Vision)
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                      {result.second_opinion.text}
+                    </p>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                      Dipicu karena confidence CNN &lt; {result.second_opinion.triggered_below}%
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
+
+          {/* Laporan (LLM) + Advisor (RAG) — full width */}
+          {result && (
+            <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ border: '1px solid var(--border-color)', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                <div style={{
+                  padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                    <FileText size={15} /> Laporan Inspeksi
+                  </span>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {reportMd && (
+                      <button className="button-outline" onClick={handleDownloadReport}
+                        style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}>
+                        <Download size={13} /> .md
+                      </button>
+                    )}
+                    <button className="button-primary" onClick={handleGenerateReport} disabled={reportLoading}
+                      style={{ padding: '0.35rem 0.7rem', fontSize: '0.75rem', opacity: reportLoading ? 0.7 : 1 }}>
+                      {reportLoading ? 'Menyusun...' : reportMd ? 'Buat ulang' : 'Generate Report'}
+                    </button>
+                  </div>
+                </div>
+                <div style={{ padding: '1rem' }}>
+                  {reportError && (
+                    <div style={{ color: '#dc2626', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      <AlertCircle size={15} /> {reportError}
+                    </div>
+                  )}
+                  {!reportMd && !reportError && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      Susun laporan inspeksi profesional dari hasil deteksi ini (ditenagai LLM + knowledge base).
+                    </p>
+                  )}
+                  {reportMd && (
+                    <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(reportMd) }} />
+                  )}
+                </div>
+              </div>
+
+              <AdvisorChat detectionContext={`label=${result.label}, confidence=${result.confidence}%`} />
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

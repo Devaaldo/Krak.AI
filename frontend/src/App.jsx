@@ -5,6 +5,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Live from "./pages/Live";
 import ImportPage from "./pages/Import";
+import Assistant from "./pages/Assistant";
 import About from "./pages/About";
 import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,14 @@ function RouteHandler() {
 					element={
 						<PageTransition>
 							<ImportPage />
+						</PageTransition>
+					}
+				/>
+				<Route
+					path="/assistant"
+					element={
+						<PageTransition>
+							<Assistant />
 						</PageTransition>
 					}
 				/>
